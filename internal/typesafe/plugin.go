@@ -32,16 +32,15 @@ type Result struct {
 	chunks     [2][]byte
 }
 type HostHTTPRequest struct {
-	Method              string
-	URL                 string
-	Headers             http.Header
-	Body                []byte
-	DisableRedirects    bool   `json:"disable_redirects"`
-	MaxResponseBytes    int64  `json:"max_response_bytes"`
-	TimeoutMilliseconds int64  `json:"timeout_ms"`
-	SuppressLogging     bool   `json:"suppress_logging,omitempty"`
-	HostCallbackID      string `json:"host_callback_id,omitempty"`
-	OperationID         string `json:"operation_id,omitempty"`
+	Method           string
+	URL              string
+	Headers          http.Header
+	Body             []byte
+	DisableRedirects bool   `json:"disable_redirects"`
+	MaxResponseBytes int64  `json:"max_response_bytes"`
+	SuppressLogging  bool   `json:"suppress_logging,omitempty"`
+	HostCallbackID   string `json:"host_callback_id,omitempty"`
+	OperationID      string `json:"operation_id,omitempty"`
 }
 type HostHTTPClient interface {
 	Do(context.Context, HostHTTPRequest) (pluginapi.HTTPResponse, error)
@@ -131,7 +130,7 @@ func (p *Plugin) Forward(ctx context.Context, body []byte) (Result, error) {
 	var responseHeaders http.Header
 	var data []byte
 	if hostClient != nil {
-		response, err := hostClient.Do(ctx, HostHTTPRequest{Method: http.MethodPost, URL: UpstreamURL, Headers: headers, Body: body, DisableRedirects: true, MaxResponseBytes: maxResponseBody, TimeoutMilliseconds: 120000, SuppressLogging: true})
+		response, err := hostClient.Do(ctx, HostHTTPRequest{Method: http.MethodPost, URL: UpstreamURL, Headers: headers, Body: body, DisableRedirects: true, MaxResponseBytes: maxResponseBody, SuppressLogging: true})
 		if err != nil {
 			return Result{}, redactError(err, key)
 		}

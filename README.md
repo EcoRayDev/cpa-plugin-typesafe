@@ -4,7 +4,7 @@ TypeSafe's typed judgment API as a native CLIProxyAPI plugin. Built by [EcoRay](
 
 The plugin exposes native `POST /v1/systemone`, registers `jev-latest` for existing OpenAI-compatible clients, and supplies its own settings page. No separate proxy sidecar or management-dashboard fork.
 
-**Host requirement:** the full integration requires [CLIProxyAPI PR #6589](https://github.com/router-for-me/CLIProxyAPI/pull/6589), which proposes RPC schema-7 native routes, HTTP safety and management model refresh. Stock 8.0.27 does not provide these capabilities. This project is not built-in support or an accepted official plugin-store listing. See [the architecture](docs/design.md).
+**Host requirement:** the full integration requires [CLIProxyAPI PR #6589](https://github.com/router-for-me/CLIProxyAPI/pull/6589), which proposes RPC schema-7 native routes and HTTP-safety options. Stock 8.0.27 does not provide these capabilities. This project is not built-in support or an accepted official plugin-store listing. See [the architecture](docs/design.md).
 
 ## What Jev does
 
@@ -70,7 +70,7 @@ Authorization: Bearer REPLACE_WITH_CLIENT_KEY
 }
 ```
 
-The native response retains TypeSafe's status and typed body. Rate-limit `Retry-After` is retained. Redirects are not followed and requests are not automatically retried. Disconnects cancel upstream work; upstream requests have a 120-second deadline and a 4 MiB response bound.
+The native response retains TypeSafe's status and typed body. Rate-limit `Retry-After` is retained. Redirects are not followed and requests are not automatically retried. Client disconnects cancel upstream work; responses are bounded to 4 MiB.
 
 ## OpenAI-compatible API
 
@@ -90,7 +90,7 @@ Select `jev-latest` in a client that discovers `/v1/models`. Send typed state/qu
 
 Send this to `/v1/chat/completions`. The assistant content contains JSON answers. Plain text instead becomes a single Noul question, with prior conversation supplying state. Streaming formats the completed judgment as SSE chunks ending in `[DONE]`; TypeSafe itself does not stream generated tokens. Do not declare tool, vision or reasoning-generation support for this model.
 
-The official model-router capability targets this plugin's own executor for its Jev aliases, without requiring a synthetic OAuth record or intercepting unrelated provider models. Saving a model pin updates `/v1/models` and chat routing immediately, without a restart. Native requests retain their explicit `model` field.
+The official model-router capability targets this plugin's own executor for its Jev aliases, without requiring a synthetic OAuth record or intercepting unrelated provider models. Saving a model pin changes chat routing immediately. `/v1/models` lists a newly pinned ID after the plugin is disabled and re-enabled or the host restarts. Native requests retain their explicit `model` field.
 
 ## Verified behavior
 

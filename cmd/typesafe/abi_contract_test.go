@@ -91,14 +91,14 @@ func TestManagementRoutesAndRegistration(t *testing.T) {
 		t.Fatal(err)
 	}
 	var saved struct {
-		OK     bool               `json:"ok"`
-		Result managementResponse `json:"result"`
+		OK     bool                         `json:"ok"`
+		Result pluginapi.ManagementResponse `json:"result"`
 	}
 	if err := json.Unmarshal(raw, &saved); err != nil {
 		t.Fatal(err)
 	}
-	if !saved.OK || saved.Result.StatusCode != http.StatusOK || !saved.Result.RefreshModels {
-		t.Fatalf("save did not commit and request model rediscovery: %+v", saved.Result)
+	if !saved.OK || saved.Result.StatusCode != http.StatusOK {
+		t.Fatalf("save did not commit: %+v", saved.Result)
 	}
 	var settings struct {
 		Model      string `json:"model"`
@@ -117,13 +117,13 @@ func TestManagementRoutesAndRegistration(t *testing.T) {
 		t.Fatal(err)
 	}
 	var resource struct {
-		OK     bool               `json:"ok"`
-		Result managementResponse `json:"result"`
+		OK     bool                         `json:"ok"`
+		Result pluginapi.ManagementResponse `json:"result"`
 	}
 	if err := json.Unmarshal(raw, &resource); err != nil {
 		t.Fatal(err)
 	}
-	if !resource.OK || resource.Result.StatusCode != http.StatusOK || resource.Result.Headers.Get("Content-Type") != "text/html; charset=utf-8" || resource.Result.RefreshModels {
+	if !resource.OK || resource.Result.StatusCode != http.StatusOK || resource.Result.Headers.Get("Content-Type") != "text/html; charset=utf-8" {
 		t.Fatalf("public resource response=%+v", resource.Result)
 	}
 }

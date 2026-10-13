@@ -10,7 +10,7 @@ The proposed CLIProxyAPI `NativeAPI` capability registers exact client routes un
 
 The native C ABI stays at version 1. RPC schema 7 adds `native.register`, `native.handle` and the `native_api` capability. Native handlers receive the request method, path, query, body and non-credential headers. Authorization and API-key headers are not delivered to the native plugin handler. A scoped host callback retains the originating request context.
 
-Optional host HTTP callback fields disable redirects, bound response bytes, set a timeout and suppress sensitive callback logging without changing existing plugins' defaults. This plugin requests no redirects, a 4 MiB response limit, a 120-second upstream deadline and suppression before raw upstream values enter log sinks. Older hosts must not silently ignore these safeguards: the complete plugin requires the proposed schema-7 host support.
+Optional host HTTP callback fields disable redirects, bound response bytes and suppress sensitive callback logging without changing existing plugins' defaults. This plugin requests no redirects, a 4 MiB response limit and suppression before raw upstream values enter log sinks. The host sets no post-connection deadline; client disconnects cancel upstream work. Older hosts must not silently ignore these safeguards: the complete plugin requires the proposed schema-7 host support.
 
 ## Plugin responsibilities
 
@@ -19,7 +19,7 @@ Optional host HTTP callback fields disable redirects, bound response bytes, set 
 - Native route: `POST /v1/systemone`, preserving TypeSafe's `state`, `model` and `questions` request and its response status/body.
 - Chat compatibility: typed JSON in the last user message passes through; plain text becomes a single Noul question. Earlier conversation supplies state. The reply contains JSON answers, not fabricated conversational reasoning.
 - Streaming compatibility: emit separate raw OpenAI JSON answer and terminal stop/usage chunks. The host owns SSE framing and `[DONE]`. This does not turn TypeSafe into a token-streaming upstream.
-- Hot model changes: successful settings responses request host model and executor/catalog re-registration; old pins disappear and new pins become discoverable without a reload.
+- Model pin changes: chat routing uses a saved pin immediately; the host model catalog picks up a new pinned ID on plugin re-registration (disable/enable or restart).
 - Authenticated management: read configured status/model, replace or preserve the upstream key, and test the connection.
 - Public resource: an embedded settings page with no embedded credentials or saved browser keys. Every management API action authenticates independently.
 

@@ -103,27 +103,20 @@ type managementRequest struct {
 	pluginapi.ManagementRequest
 	HostCallbackID string `json:"host_callback_id,omitempty"`
 }
-type managementResponse struct {
-	StatusCode    int
-	Headers       http.Header
-	Body          []byte
-	RefreshModels bool `json:"refresh_models,omitempty"`
-}
 type executorRequest struct {
 	pluginapi.ExecutorRequest
 	HostCallbackID string `json:"host_callback_id,omitempty"`
 }
 type hostHTTPRequest struct {
-	Method              string      `json:"method"`
-	URL                 string      `json:"url"`
-	Headers             http.Header `json:"headers,omitempty"`
-	Body                []byte      `json:"body,omitempty"`
-	DisableRedirects    bool        `json:"disable_redirects,omitempty"`
-	MaxResponseBytes    int64       `json:"max_response_bytes,omitempty"`
-	TimeoutMilliseconds int64       `json:"timeout_ms,omitempty"`
-	SuppressLogging     bool        `json:"suppress_logging,omitempty"`
-	HostCallbackID      string      `json:"host_callback_id,omitempty"`
-	OperationID         string      `json:"operation_id,omitempty"`
+	Method           string      `json:"method"`
+	URL              string      `json:"url"`
+	Headers          http.Header `json:"headers,omitempty"`
+	Body             []byte      `json:"body,omitempty"`
+	DisableRedirects bool        `json:"disable_redirects,omitempty"`
+	MaxResponseBytes int64       `json:"max_response_bytes,omitempty"`
+	SuppressLogging  bool        `json:"suppress_logging,omitempty"`
+	HostCallbackID   string      `json:"host_callback_id,omitempty"`
+	OperationID      string      `json:"operation_id,omitempty"`
 }
 type operationOpenRequest struct {
 	HostCallbackID string `json:"host_callback_id,omitempty"`
@@ -245,13 +238,9 @@ func dispatch(method string, raw []byte) ([]byte, error) {
 		if err = json.Unmarshal(raw, &req); err != nil {
 			return nil, err
 		}
-		previousModel := p.Model()
 		ctx := typesafe.WithHostHTTPClient(context.Background(), hostHTTPClient{callbackID: req.HostCallbackID})
 		res, e := (pluginManagementHandler{plugin: p}).HandleManagement(ctx, req.ManagementRequest)
-		refresh := e == nil && req.Method == http.MethodPut &&
-			req.Path == "/v0/management/plugins/typesafe/settings" &&
-			res.StatusCode >= 200 && res.StatusCode < 300 && p.Model() != previousModel
-		return envelope(managementResponse{StatusCode: res.StatusCode, Headers: res.Headers, Body: res.Body, RefreshModels: refresh}, e)
+		return envelope(res, e)
 	case methodNativeRegister:
 		state.RLock()
 		schema := state.schema
@@ -323,7 +312,7 @@ func (c hostHTTPClient) Do(ctx context.Context, req typesafe.HostHTTPRequest) (p
 	if err = json.Unmarshal(opened, &operation); err != nil {
 		return pluginapi.HTTPResponse{}, err
 	}
-	raw, err := json.Marshal(hostHTTPRequest{Method: req.Method, URL: req.URL, Headers: req.Headers, Body: req.Body, DisableRedirects: true, MaxResponseBytes: 4 << 20, TimeoutMilliseconds: 120000, SuppressLogging: true, HostCallbackID: c.callbackID, OperationID: operation.OperationID})
+	raw, err := json.Marshal(hostHTTPRequest{Method: req.Method, URL: req.URL, Headers: req.Headers, Body: req.Body, DisableRedirects: true, MaxResponseBytes: 4 << 20, SuppressLogging: true, HostCallbackID: c.callbackID, OperationID: operation.OperationID})
 	if err != nil {
 		return pluginapi.HTTPResponse{}, err
 	}
