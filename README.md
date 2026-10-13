@@ -4,7 +4,7 @@ TypeSafe's typed judgment API as a native CLIProxyAPI plugin. Built by [EcoRay](
 
 The plugin exposes native `POST /v1/systemone`, registers `jev-latest` for existing OpenAI-compatible clients, and supplies its own settings page. No separate proxy sidecar or management-dashboard fork.
 
-**Host requirement:** the full integration requires the proposed CLIProxyAPI RPC schema-7 native-route, HTTP-safety and management model-refresh capabilities. Stock 8.0.27 does not provide them. This project must not be represented as built-in support or an accepted official plugin-store listing until the upstream contributions are merged. See [the architecture](docs/design.md).
+**Host requirement:** the full integration requires [CLIProxyAPI PR #6589](https://github.com/router-for-me/CLIProxyAPI/pull/6589), which proposes RPC schema-7 native routes, HTTP safety and management model refresh. Stock 8.0.27 does not provide these capabilities. This project is not built-in support or an accepted official plugin-store listing. See [the architecture](docs/design.md).
 
 ## What Jev does
 
@@ -27,7 +27,7 @@ If a Nix-provided `cc` is selected on macOS, use Apple's compiler explicitly: `C
 
 ## Install
 
-1. Obtain a compatible host build. Until the upstream hook is merged, build the proposed branch rather than deploying this against an unchanged stock host.
+1. Obtain a compatible host build. Until the upstream hook is merged, use [EcoRayDev's `feat/plugin-native-routes` branch](https://github.com/EcoRayDev/CLIProxyAPI/tree/feat/plugin-native-routes), not an unchanged stock host. Build it with `go build -trimpath -o cli-proxy-api ./cmd/server`; on macOS with Nix GCC selected, prefix the command with `CC=/usr/bin/clang`.
 2. Build the library, or download the matching platform ZIP and verify it against the release's `checksums.txt` before extraction.
 3. Place the library in the host's plugin directory.
 4. Configure both the global plugin switch and this plugin's switch:
