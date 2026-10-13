@@ -1,0 +1,20 @@
+config-version: 8
+server:
+  host: "127.0.0.1"
+  port: 8317
+management:
+  allow-remote: false
+  secret-key: "replace-with-management-key"
+access:
+  api-keys:
+    - "replace-with-client-key"
+plugins:
+  enabled: true
+  dir: "./plugins"
+  configs:
+    typesafe:
+      model: "jev-latest"
+      enabled: true
+      credentials_file: "./private/typesafe/credentials.yaml"
+# Configure the TypeSafe upstream key through the plugin's authenticated settings page.
+# Never put that key in this host configuration, tracked files, or shell history.

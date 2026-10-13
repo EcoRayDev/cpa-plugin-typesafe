@@ -1,0 +1,14 @@
+/dist/
+/.smoke/
+*.dylib
+*.so
+*.dll
+*.h
+.env
+.env.*
+credentials.yaml
+credentials.yml
+credentials.json
+config.local.yaml
+*.log
+.DS_Store

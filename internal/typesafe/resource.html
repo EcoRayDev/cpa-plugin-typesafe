@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TypeSafe settings</title>
+<style>
+:root{font:16px system-ui;color:#20242b;background:#f4f6f8}body{max-width:42rem;margin:3rem auto;padding:0 1rem}main{background:white;padding:2rem;border-radius:12px;box-shadow:0 4px 24px #0001}label{display:block;margin:1rem 0 .3rem}input{box-sizing:border-box;width:100%;padding:.7rem;border:1px solid #aab2bd;border-radius:6px}button{padding:.65rem 1rem;margin:.6rem .4rem .4rem 0;border:0;border-radius:6px;background:#244c73;color:white;cursor:pointer}button.secondary{background:#59636f}#status{white-space:pre-wrap;overflow-wrap:anywhere;color:#354458}.card{padding:.8rem;background:#edf3f8;border-radius:6px}code{overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<main>
+<h1>TypeSafe</h1>
+<section id="configured" class="card" hidden>
+<strong>Configured</strong>
+<div id="configuredModel"></div>
+<div>API key: Saved (hidden)</div>
+<div>Native endpoint: <code>/v1/systemone</code></div>
+<button id="edit" class="secondary">Edit</button>
+<button id="test" type="button">Test connection</button>
+</section>
+<form id="form" hidden>
+<label for="managementKey">Management API key</label>
+<input id="managementKey" type="password" autocomplete="off">
+<button type="submit">Connect</button>
+</form>
+<section id="editor" hidden>
+<label for="model">Jev model</label>
+<input id="model" value="jev-latest" autocomplete="off">
+<label for="upstreamKey">TypeSafe API key</label>
+<input id="upstreamKey" type="password" autocomplete="new-password" placeholder="Leave blank to keep the saved key">
+<button id="save" type="button">Save</button>
+<button id="cancel" type="button" class="secondary">Cancel</button>
+</section>
+<p id="status" role="status"></p>
+</main>
+<script>
+(() => {
+  'use strict';
+  const base = '/v0/management/plugins/typesafe';
+  const keyInput = document.querySelector('#managementKey');
+  const modelInput = document.querySelector('#model');
+  const upstreamInput = document.querySelector('#upstreamKey');
+  const status = document.querySelector('#status');
+  const form = document.querySelector('#form');
+  const editor = document.querySelector('#editor');
+  const configured = document.querySelector('#configured');
+  const configuredModel = document.querySelector('#configuredModel');
+  let managementKey = '';
+  let savedModel = 'jev-latest';
+  let isConfigured = false;
+  function say(text) { status.textContent = text; }
+  function displaySettings(data) {
+    savedModel = data.model;
+    isConfigured = data.configured === true;
+    configuredModel.textContent = 'Model: ' + savedModel;
+    configured.hidden = !isConfigured;
+    modelInput.value = savedModel;
+    upstreamInput.value = '';
+    editor.hidden = isConfigured;
+    form.hidden = true;
+  }
+  async function api(path, method = 'GET', body) {
+    const headers = {'Content-Type': 'application/json'};
+    if (managementKey) headers.Authorization = 'Bearer ' + managementKey;
+    const response = await fetch(base + path, {
+      method, headers, body: body === undefined ? undefined : JSON.stringify(body)
+    });
+    let data = {};
+    try { data = await response.json(); } catch {}
+    if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Request failed (HTTP ' + response.status + ')');
+    return data;
+  }
+  async function load() {
+    try {
+      displaySettings(await api('/settings'));
+      say(isConfigured ? 'Settings loaded.' : 'Add your TypeSafe API key to configure the provider.');
+      return true;
+    } catch {
+      configured.hidden = true;
+      form.hidden = false;
+      editor.hidden = true;
+      say('Enter the host management API key to connect.');
+      return false;
+    }
+  }
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    managementKey = keyInput.value;
+    keyInput.value = '';
+    if (!await load()) {
+      managementKey = '';
+      say('Unable to authenticate. Check the management key.');
+    }
+  });
+  document.querySelector('#edit').addEventListener('click', () => {
+    modelInput.value = savedModel;
+    upstreamInput.value = '';
+    editor.hidden = false;
+    say('Unsaved changes. A blank key keeps the saved key; connection tests use saved settings.');
+  });
+  document.querySelector('#cancel').addEventListener('click', () => {
+    modelInput.value = savedModel;
+    upstreamInput.value = '';
+    editor.hidden = isConfigured;
+    say('Changes canceled.');
+  });
+  document.querySelector('#test').addEventListener('click', async () => {
+    say('Testing saved connection…');
+    try { await api('/test', 'POST', {}); say('Connection successful.'); }
+    catch (error) { say(error.message); }
+  });
+  document.querySelector('#save').addEventListener('click', async () => {
+    const model = modelInput.value.trim() || savedModel;
+    try {
+      displaySettings(await api('/settings', 'PUT', {model, api_key: upstreamInput.value}));
+      say('Settings saved.');
+    } catch (error) { say(error.message); }
+  });
+  load();
+})();
+</script>
+</body>
+</html>

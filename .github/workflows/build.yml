@@ -1,0 +1,92 @@
+name: Verify and build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PLUGIN_ID: typesafe
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Scan committed history for credentials
+        run: go run github.com/zricethezav/gitleaks/v8@v8.24.2 git --redact --no-banner .
+      - run: go test -race ./...
+      - run: go vet ./...
+
+  build:
+    needs: verify
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-24.04, goos: linux, goarch: amd64, ext: so }
+          - { runner: ubuntu-24.04-arm, goos: linux, goarch: arm64, ext: so }
+          - { runner: macos-15, goos: darwin, goarch: arm64, ext: dylib }
+          - { runner: macos-15-intel, goos: darwin, goarch: amd64, ext: dylib }
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Verify behavior on the target platform
+        run: go test -race ./... && go vet ./...
+      - name: Build and package the native library
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '1'
+          LIB_EXT: ${{ matrix.ext }}
+        run: |
+          set -euo pipefail
+          VERSION=0.1.0
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then VERSION="${GITHUB_REF_NAME#v}"; fi
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          mkdir -p dist
+          go build -trimpath -buildmode=c-shared -ldflags "-s -w -X main.pluginVersion=$VERSION" -o "dist/typesafe.$LIB_EXT" ./cmd/typesafe
+          go run ./scripts/package-release.go -library "dist/typesafe.$LIB_EXT" -archive "dist/typesafe_${VERSION}_${GOOS}_${GOARCH}.zip" -checksum "dist/checksums-${GOOS}-${GOARCH}.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            dist/*.zip
+            dist/checksums-*.txt
+          if-no-files-found: error
+
+  release:
+    if: github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Publish verified assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cat artifacts/checksums-*.txt > artifacts/checksums.txt
+          (cd artifacts && sha256sum --check checksums.txt)
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes artifacts/*.zip artifacts/checksums.txt
